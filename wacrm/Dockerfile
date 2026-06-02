@@ -16,7 +16,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 ARG NEXT_PUBLIC_SUPABASE_URL=https://aeejbjfhxpflbuijisup.supabase.co
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_BmfpLA5599BcVxNSszf3rg_mldoJ_oD
-ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ARG NEXT_PUBLIC_SITE_URL=https://fatorzap.smarts.solutions
 
 RUN npm run build
 
@@ -36,6 +36,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/next.config.ts ./
 
 USER nextjs
 

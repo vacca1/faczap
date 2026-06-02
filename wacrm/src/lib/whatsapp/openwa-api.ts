@@ -234,17 +234,18 @@ export interface SendReactionArgs {
   sessionId: string
   apiKey: string
   baseUrl?: string
+  chatId: string
   targetMessageId: string
   emoji: string
 }
 
 export async function sendReactionMessage(args: SendReactionArgs): Promise<OpenWASendResult> {
-  const { sessionId, apiKey, baseUrl, targetMessageId, emoji } = args
+  const { sessionId, apiKey, baseUrl, chatId, targetMessageId, emoji } = args
   const url = `${getBaseUrl(baseUrl)}/sessions/${sessionId}/messages/send-reaction`
   const response = await fetch(url, {
     method: 'POST',
     headers: buildHeaders(apiKey),
-    body: JSON.stringify({ messageId: targetMessageId, emoji }),
+    body: JSON.stringify({ chatId, messageId: targetMessageId, emoji }),
   })
   if (!response.ok) {
     await throwOpenWAError(response, `OpenWA API error: ${response.status}`)

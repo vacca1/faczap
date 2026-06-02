@@ -8,6 +8,7 @@ node_modules/
 
 # Next.js
 wacrm/.next/
+wacrm/.open-next/
 wacrm/out/
 wacrm/package-lock.json
 

@@ -1,6 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback', '/reset-password']
+const API_PUBLIC_ROUTES = ['/api/whatsapp/webhook', '/api/automations/cron', '/api/flows/cron']
+
+function isPublicRoute(pathname: string): boolean {
+  return (
+    PUBLIC_ROUTES.some((r) => pathname.startsWith(r)) ||
+    API_PUBLIC_ROUTES.some((r) => pathname.startsWith(r))
+  )
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -23,17 +34,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // AUTH DESATIVADO — modo desenvolvimento
-  // Auto-login com user dev se não há sessão ativa
   const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // Allow public routes without auth
+  if (isPublicRoute(pathname)) {
+    return supabaseResponse
+  }
+
+  // Redirect unauthenticated users to login
   if (!user) {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: 'dev@fatorzap.local',
-      password: 'dev123456',
-    })
-    if (error) {
-      console.warn('[middleware] dev auto-login failed:', error.message)
-    }
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = '/login'
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   return supabaseResponse

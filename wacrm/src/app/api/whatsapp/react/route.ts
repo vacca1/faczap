@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { sendReactionMessage } from '@/lib/whatsapp/meta-api';
-import { decrypt } from '@/lib/whatsapp/encryption';
-import { sanitizePhoneForMeta } from '@/lib/whatsapp/phone-utils';
+import { sendReactionMessage, phoneToOpenWAChatId } from '@/lib/whatsapp/openwa-api';
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -14,7 +12,7 @@ import {
  *
  * Body: { message_id: <internal UUID>, emoji: <single emoji or "" to remove> }
  *
- * Sends the reaction to Meta and mirrors it into `message_reactions`
+ * Sends the reaction via OpenWA and mirrors it into `message_reactions`
  * (delete on empty emoji). Customer-side reactions are handled by the
  * webhook — this route only writes `actor_type = 'agent'` rows.
  */
@@ -36,8 +34,7 @@ export async function POST(request: Request) {
       return rateLimitResponse(limit);
     }
 
-    // Resolve the caller's account_id so conversation + whatsapp_config
-    // lookups work for teammates who didn't author the rows directly.
+    // Resolve the caller's account_id
     const { data: profile } = await supabase
       .from('profiles')
       .select('account_id')
@@ -76,8 +73,6 @@ export async function POST(request: Request) {
     }
 
     if (!targetMessage.message_id) {
-      // No Meta ID yet — usually a sending/failed agent message. We can't
-      // tell Meta to react to a message it never received.
       return NextResponse.json(
         { error: 'Cannot react to a message that has not been sent to WhatsApp' },
         { status: 400 },
@@ -108,10 +103,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // WhatsApp config + access token. Account-scoped post-multi-user.
+    // WhatsApp config — OpenWA credentials
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('phone_number_id, access_token')
+      .select('session_id, api_key, openwa_base_url')
       .eq('account_id', accountId)
       .single();
 
@@ -122,23 +117,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const accessToken = decrypt(config.access_token);
-    const sanitizedPhone = sanitizePhoneForMeta(contact.phone);
-
     try {
       await sendReactionMessage({
-        phoneNumberId: config.phone_number_id,
-        accessToken,
-        to: sanitizedPhone,
+        sessionId: config.session_id,
+        apiKey: config.api_key,
+        baseUrl: config.openwa_base_url,
+        chatId: phoneToOpenWAChatId(contact.phone),
         targetMessageId: targetMessage.message_id,
         emoji,
       });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Unknown Meta API error';
-      console.error('[whatsapp/react] Meta send failed:', message);
+        err instanceof Error ? err.message : 'Unknown OpenWA error';
+      console.error('[whatsapp/react] OpenWA send failed:', message);
       return NextResponse.json(
-        { error: `Meta API error: ${message}` },
+        { error: `OpenWA error: ${message}` },
         { status: 502 },
       );
     }
@@ -155,13 +148,11 @@ export async function POST(request: Request) {
       if (delError) {
         console.error('[whatsapp/react] DB delete failed:', delError.message);
         return NextResponse.json(
-          { error: 'Reaction sent to Meta but DB delete failed' },
+          { error: 'Reaction sent but DB delete failed' },
           { status: 500 },
         );
       }
     } else {
-      // Upsert. The unique constraint (message_id, actor_type, actor_id)
-      // lets us swap emoji in a single statement.
       const { error: upsertError } = await supabase.from('message_reactions').upsert(
         {
           message_id: targetMessage.id,
@@ -176,7 +167,7 @@ export async function POST(request: Request) {
       if (upsertError) {
         console.error('[whatsapp/react] DB upsert failed:', upsertError.message);
         return NextResponse.json(
-          { error: 'Reaction sent to Meta but DB upsert failed' },
+          { error: 'Reaction sent but DB upsert failed' },
           { status: 500 },
         );
       }

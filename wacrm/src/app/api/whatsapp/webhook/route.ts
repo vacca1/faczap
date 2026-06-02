@@ -68,12 +68,8 @@ interface OpenWAWebhookPayload {
 
 // POST - Receive events from OpenWA
 export async function POST(request: Request) {
-  let payload: OpenWAWebhookPayload
-  try {
-    payload = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  // Read raw body FIRST for HMAC verification (before parsing JSON)
+  const rawBody = await request.text()
 
   // Verify HMAC signature if a webhook secret is configured.
   // OpenWA sends the signature in X-OpenWA-Signature header.
@@ -83,13 +79,18 @@ export async function POST(request: Request) {
     if (!signature) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
     }
-    // Simple constant-time comparison — OpenWA sends the raw HMAC hex
-    const rawBody = JSON.stringify(payload)
     const expectedSig = await computeHmac(secret, rawBody)
-    if (!timingSafeEqual(signature, expectedSig)) {
+    if (!constantTimeEqual(signature, expectedSig)) {
       console.warn('[webhook/openwa] rejected request with invalid signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
+  }
+
+  let payload: OpenWAWebhookPayload
+  try {
+    payload = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
   // Ack immediately; process async
@@ -109,11 +110,19 @@ async function computeHmac(secret: string, body: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
+/** Constant-time string comparison using node:crypto */
+function constantTimeEqual(a: string, b: string): boolean {
+  const { timingSafeEqual: nodeTimingSafeEqual } = require('crypto')
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) {
+    // Pad shorter buffer to prevent length leak — still compare
+    const padded = Buffer.alloc(bufA.length)
+    bufB.copy(padded)
+    nodeTimingSafeEqual(bufA, padded)
+    return false
+  }
+  return nodeTimingSafeEqual(bufA, bufB)
 }
 
 async function processWebhook(payload: OpenWAWebhookPayload) {
