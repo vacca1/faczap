@@ -1,0 +1,27 @@
+# Environment files with secrets
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+
+# Next.js
+wacrm/.next/
+wacrm/out/
+
+# OpenWA data
+OpenWA/data/
+OpenWA/.wwebjs_auth/
+OpenWA/node_modules/
+OpenWA/dist/
+
+# OS
+.DS_Store
+*.swp
+
+# QR code screenshots
+openwa-qr.png
+
+# Claude
+.claude/
