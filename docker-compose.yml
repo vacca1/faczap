@@ -38,7 +38,8 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
       ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
       NEXT_PUBLIC_SITE_URL: "https://fatorzap.smarts.solutions"
-      OPENWA_BASE_URL: "http://openwa:2785/api"
+      OPENWA_BASE_URL: "https://openwa.smarts.solutions/api"
+      OPENWA_API_KEY: "${OPENWA_API_KEY}"
       OPENWA_WEBHOOK_SECRET: "${OPENWA_WEBHOOK_SECRET:-}"
       AUTOMATION_CRON_SECRET: "${AUTOMATION_CRON_SECRET:-}"
     depends_on:
