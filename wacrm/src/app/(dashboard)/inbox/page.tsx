@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
@@ -13,6 +13,14 @@ import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function InboxPage() {
+  return (
+    <Suspense>
+      <InboxInner />
+    </Suspense>
+  );
+}
+
+function InboxInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   /**
