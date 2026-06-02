@@ -22,47 +22,47 @@ function supabaseAdmin() {
 // OpenWA webhook payload types
 // ============================================================
 
+// Inbound message shape (OpenWA engine IncomingMessage). whatsapp-web.js
+// types: "chat" (text), "image", "video", "audio", "ptt" (voice note),
+// "document", "sticker", "location". Media arrives as base64 in `media.data`
+// (no URL). For media messages the caption is in `body`.
 interface OpenWAMessageData {
   id: string
-  from: string        // e.g. "5511999999999@c.us"
-  fromMe: boolean
-  to: string
+  from: string        // e.g. "5511999999999@c.us" (or "...@g.us" for groups)
+  to?: string
+  chatId?: string
   body: string
-  type: string        // "chat", "image", "video", "document", "audio", "sticker", "location", "reaction"
+  type: string
   timestamp: number   // epoch seconds
-  hasMedia: boolean
-  mediaData?: {
-    url?: string
-    mimetype?: string
-    caption?: string
+  fromMe: boolean
+  isGroup?: boolean
+  media?: {
+    mimetype: string
     filename?: string
+    data?: string     // base64
   }
-  location?: {
-    latitude: number
-    longitude: number
-    description?: string
-  }
-  reaction?: {
-    msgId: string
-    text: string      // emoji, empty string = removal
-  }
-  quotedMsg?: {
+  quotedMessage?: {
     id: string
+    body?: string
   }
-  _serialized?: string
 }
 
 interface OpenWAAckData {
-  id: string
+  id?: string
+  messageId?: string
   ack: number         // 1=sent, 2=delivered, 3=read
-  to: string
+  to?: string
 }
 
+// OpenWA webhook envelope: { event, timestamp, sessionId, idempotencyKey,
+// deliveryId, data }. NOTE: `sessionId` is FLAT (not nested under session).
 interface OpenWAWebhookPayload {
   event: string
+  timestamp?: string
+  sessionId?: string
+  session?: { id: string }   // tolerated fallback
   deliveryId?: string
   idempotencyKey?: string
-  session?: { id: string }
   data: OpenWAMessageData | OpenWAAckData
 }
 
@@ -126,9 +126,11 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 async function processWebhook(payload: OpenWAWebhookPayload) {
-  const { event, session } = payload
+  const { event } = payload
+  // OpenWA sends `sessionId` flat; tolerate a nested `session.id` too.
+  const sessionId = payload.sessionId ?? payload.session?.id
 
-  if (!session?.id) {
+  if (!sessionId) {
     console.warn('[webhook/openwa] event without session id, skipping')
     return
   }
@@ -137,15 +139,15 @@ async function processWebhook(payload: OpenWAWebhookPayload) {
   const { data: configRows, error: configError } = await supabaseAdmin()
     .from('whatsapp_config')
     .select('*')
-    .eq('session_id', session.id)
+    .eq('session_id', sessionId)
 
   if (configError || !configRows || configRows.length === 0) {
-    console.error('[webhook/openwa] no config found for session_id:', session.id, configError?.message)
+    console.error('[webhook/openwa] no config found for session_id:', sessionId, configError?.message)
     return
   }
 
   if (configRows.length > 1) {
-    console.error('[webhook/openwa] multiple configs for session_id:', session.id, '— event dropped')
+    console.error('[webhook/openwa] multiple configs for session_id:', sessionId, '— event dropped')
     return
   }
 
@@ -158,8 +160,10 @@ async function processWebhook(payload: OpenWAWebhookPayload) {
 
   if (event === 'message.received') {
     const msgData = payload.data as OpenWAMessageData
-    // Skip messages sent by us
+    // Skip our own outbound echoes
     if (msgData.fromMe) return
+    // Skip group messages — this is a 1:1 sales CRM, groups would be noise
+    if (msgData.isGroup || msgData.from?.endsWith('@g.us')) return
     await processInboundMessage(msgData, config)
     return
   }
@@ -191,18 +195,20 @@ function isForwardTransition(current: string, incoming: string): boolean {
 async function handleAck(data: OpenWAAckData) {
   const newStatus = ACK_STATUS_MAP[data.ack]
   if (!newStatus) return
+  const ackId = data.id ?? data.messageId
+  if (!ackId) return
 
   // Update messages table
   await supabaseAdmin()
     .from('messages')
     .update({ status: newStatus })
-    .eq('message_id', data.id)
+    .eq('message_id', ackId)
 
   // Update broadcast_recipients
   const { data: recipient } = await supabaseAdmin()
     .from('broadcast_recipients')
     .select('id, status')
-    .eq('whatsapp_message_id', data.id)
+    .eq('whatsapp_message_id', ackId)
     .maybeSingle()
 
   if (!recipient) return
@@ -244,21 +250,15 @@ async function processInboundMessage(msgData: OpenWAMessageData, config: any) {
   )
   if (!conversation) return
 
-  // Handle reactions (not stored as messages)
-  if (msgData.type === 'reaction') {
-    await handleReaction(msgData, conversation.id, contactRecord.id)
-    return
-  }
-
   const { contentText, mediaUrl, interactiveReplyId } = parseMessageContent(msgData)
 
   // Resolve swipe-reply context
   let replyToInternalId: string | null = null
-  if (msgData.quotedMsg?.id) {
+  if (msgData.quotedMessage?.id) {
     const { data: parent } = await supabaseAdmin()
       .from('messages')
       .select('id')
-      .eq('message_id', msgData.quotedMsg.id)
+      .eq('message_id', msgData.quotedMessage.id)
       .eq('conversation_id', conversation.id)
       .maybeSingle()
     replyToInternalId = parent?.id ?? null
@@ -270,6 +270,7 @@ async function processInboundMessage(msgData: OpenWAMessageData, config: any) {
   const openwaTypeMap: Record<string, string> = {
     chat: 'text',
     sticker: 'image',
+    ptt: 'audio', // voice note
   }
   const mappedType = openwaTypeMap[msgData.type] ?? msgData.type
   const contentType = ALLOWED_CONTENT_TYPES.has(mappedType) ? mappedType : 'text'
@@ -361,6 +362,18 @@ function parseMessageContent(msg: OpenWAMessageData): {
 } {
   const empty = { contentText: null, mediaUrl: null, interactiveReplyId: null }
 
+  // Media label fallbacks (PT-BR) shown when there's no caption. Media itself
+  // arrives as base64 in `media.data`; persisting it to storage is a follow-up,
+  // so for now we keep the caption/filename text and leave mediaUrl null.
+  const mediaLabel: Record<string, string> = {
+    image: '[imagem]',
+    video: '[vídeo]',
+    audio: '[áudio]',
+    ptt: '[áudio]',
+    document: '[documento]',
+    sticker: '[figurinha]',
+  }
+
   switch (msg.type) {
     case 'chat':
       return { ...empty, contentText: msg.body || null }
@@ -369,71 +382,20 @@ function parseMessageContent(msg: OpenWAMessageData): {
     case 'video':
     case 'document':
     case 'audio':
+    case 'ptt':
     case 'sticker':
+      // For media, whatsapp-web.js puts the caption in `body`.
       return {
         ...empty,
-        contentText: msg.mediaData?.caption || msg.mediaData?.filename || null,
-        // OpenWA provides the media URL directly — no proxy needed
-        mediaUrl: msg.mediaData?.url ?? null,
+        contentText: msg.body || msg.media?.filename || mediaLabel[msg.type] || '[mídia]',
       }
 
     case 'location':
-      if (msg.location) {
-        const loc = msg.location
-        const parts = [
-          loc.description,
-          `${loc.latitude},${loc.longitude}`,
-        ].filter(Boolean)
-        return { ...empty, contentText: parts.join(' - ') }
-      }
-      return empty
-
-    case 'reaction':
-      return { ...empty, contentText: msg.reaction?.text || null }
+      return { ...empty, contentText: msg.body || '[localização]' }
 
     default:
       return { ...empty, contentText: msg.body || `[${msg.type}]` }
   }
-}
-
-async function handleReaction(
-  msg: OpenWAMessageData,
-  conversationId: string,
-  contactId: string,
-) {
-  if (!msg.reaction?.msgId) return
-
-  const { data: parent } = await supabaseAdmin()
-    .from('messages')
-    .select('id')
-    .eq('message_id', msg.reaction.msgId)
-    .eq('conversation_id', conversationId)
-    .maybeSingle()
-
-  if (!parent) return
-
-  if (!msg.reaction.text) {
-    await supabaseAdmin()
-      .from('message_reactions')
-      .delete()
-      .eq('message_id', parent.id)
-      .eq('actor_type', 'customer')
-      .eq('actor_id', contactId)
-    return
-  }
-
-  await supabaseAdmin()
-    .from('message_reactions')
-    .upsert(
-      {
-        message_id: parent.id,
-        conversation_id: conversationId,
-        actor_type: 'customer',
-        actor_id: contactId,
-        emoji: msg.reaction.text,
-      },
-      { onConflict: 'message_id,actor_type,actor_id' },
-    )
 }
 
 async function flagBroadcastReplyIfAny(accountId: string, contactId: string) {
