@@ -21,6 +21,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { CountUp, Reveal, SpotlightCard } from "@/components/landing/landing-fx";
+import Aurora from "@/components/Aurora";
 
 // Distinctive type pairing — Bricolage Grotesque (characterful display) over
 // Plus Jakarta Sans (clean geometric body), with JetBrains Mono for the
@@ -114,17 +115,21 @@ export default function LandingPage() {
     >
       {/* ===================== Ambient background ===================== */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        {/* grain / vignette base */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(37,211,102,0.10),transparent_60%)]" />
+        {/* React Bits Aurora — WebGL flowing gradient anchored to the top */}
+        <div className="absolute inset-x-0 top-0 h-[75vh] opacity-70">
+          <Aurora
+            colorStops={["#25d366", "#a3e635", "#2dd4bf"]}
+            amplitude={1.1}
+            blend={0.55}
+            speed={0.7}
+          />
+        </div>
+        {/* vignette + grid texture layered over the aurora */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(37,211,102,0.08),transparent_60%)]" />
         <div className="fz-grid absolute inset-0" />
-        {/* aurora blobs */}
-        <div className="fz-aurora-blob absolute -top-40 left-1/2 h-[520px] w-[760px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(37,211,102,0.30),transparent_70%)] blur-[90px]" />
+        {/* soft secondary glows lower on the page */}
         <div
-          className="fz-aurora-blob absolute top-[30%] -left-32 h-[420px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(45,212,191,0.22),transparent_70%)] blur-[100px]"
-          style={{ animationDelay: "-6s" }}
-        />
-        <div
-          className="fz-aurora-blob absolute top-[60%] -right-32 h-[440px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(163,230,53,0.16),transparent_70%)] blur-[110px]"
+          className="fz-aurora-blob absolute top-[60%] -right-32 h-[440px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(163,230,53,0.14),transparent_70%)] blur-[110px]"
           style={{ animationDelay: "-12s" }}
         />
       </div>
