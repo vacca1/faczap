@@ -2,26 +2,20 @@ version: "3.9"
 
 services:
   # OpenWA — WhatsApp Web bridge
-  # Repo: https://github.com/rmyndharis/OpenWA
-  # Clone it to ./OpenWA and run `docker build -t openwa .` first,
-  # or use `build: ./OpenWA` below to auto-build.
   openwa:
-    build: ./OpenWA
+    image: ghcr.io/vacca1/faczap/openwa:latest
     container_name: openwa
     restart: unless-stopped
     ports:
-      - "2785:2785"   # REST API
-      - "2886:2886"   # Dashboard UI
+      - "2785:2785"
+      - "2886:2886"
     environment:
       API_PORT: "2785"
       DASHBOARD_PORT: "2886"
-      # Change this to a strong random key — all API calls require it
       API_MASTER_KEY: "${OPENWA_API_KEY:-changeme}"
       DATABASE_TYPE: "sqlite"
       STORAGE_TYPE: "local"
       ENGINE_TYPE: "whatsapp-web.js"
-      # Where OpenWA should push webhook events (FatorZap webhook endpoint)
-      # In production, replace localhost with your server's public URL
       DEFAULT_WEBHOOK_URL: "${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}/api/whatsapp/webhook"
     volumes:
       - openwa_data:/app/data
@@ -37,13 +31,7 @@ services:
 
   # FatorZap — Next.js CRM
   fatorzap:
-    build:
-      context: ./wacrm
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL}"
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
-        NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
+    image: ghcr.io/vacca1/faczap/fatorzap:latest
     container_name: fatorzap
     restart: unless-stopped
     ports:
@@ -54,7 +42,6 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
       ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
       NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
-      # OpenWA connection — uses internal Docker network name
       OPENWA_BASE_URL: "http://openwa:2785/api"
       OPENWA_WEBHOOK_SECRET: "${OPENWA_WEBHOOK_SECRET:-}"
     depends_on:
