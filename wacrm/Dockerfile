@@ -14,8 +14,6 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Public vars are baked in at build time.
-# Real server-side secrets come from docker-compose env at runtime.
 ARG NEXT_PUBLIC_SUPABASE_URL=https://aeejbjfhxpflbuijisup.supabase.co
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_BmfpLA5599BcVxNSszf3rg_mldoJ_oD
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -23,6 +21,7 @@ ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 RUN npm run build
 
 # --- Runner ---
+# Use the full node image with all deps (no standalone trace needed)
 FROM base AS runner
 WORKDIR /app
 
@@ -32,12 +31,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Copy the full app — not using standalone mode to avoid path issues
 COPY --from=builder /app/public ./public
-
-# Next.js standalone mirrors the absolute path structure from the build.
-# In Docker (WORKDIR /app), server.js is at .next/standalone/app/server.js.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
 
 USER nextjs
 
@@ -45,4 +43,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["npm", "start"]

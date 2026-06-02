@@ -54,9 +54,6 @@ const SECURITY_HEADERS = [
 ] as const;
 
 const nextConfig: NextConfig = {
-  // standalone output for Docker deployments. @opennextjs/cloudflare
-  // ignores this and uses its own bundling.
-  output: "standalone",
   /**
    * Cache-Control policy.
    *
