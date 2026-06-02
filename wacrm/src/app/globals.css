@@ -267,3 +267,225 @@ html[data-theme="rose"] {
     @apply font-sans;
   }
 }
+
+/* ============================================================
+ * LANDING PAGE (/) — art-directed FX, scoped under `.fz-root`.
+ * Everything here is prefixed `fz-` to avoid colliding with the
+ * app's shadcn/Tailwind tokens. The landing runs its own
+ * emerald/WhatsApp palette independent of the user theme.
+ * ============================================================ */
+
+.fz-root {
+  --fz-bg: #050a0b;
+  --fz-green: #25d366;
+  --fz-emerald: #34d399;
+  --fz-lime: #a3e635;
+  --fz-teal: #2dd4bf;
+}
+
+.font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+.font-jakarta {
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+.font-monofz {
+  font-family: var(--font-monofz), ui-monospace, SFMono-Regular, monospace;
+}
+
+@keyframes fz-aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.75;
+  }
+  33% {
+    transform: translate3d(6%, -5%, 0) scale(1.2);
+    opacity: 1;
+  }
+  66% {
+    transform: translate3d(-6%, 5%, 0) scale(0.92);
+    opacity: 0.65;
+  }
+}
+@keyframes fz-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+@keyframes fz-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes fz-shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+@keyframes fz-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fz-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes fz-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@keyframes fz-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fz-aurora-blob {
+  animation: fz-aurora 20s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.animate-fz-float {
+  animation: fz-float 6s ease-in-out infinite;
+}
+.fz-gradient-text {
+  background-size: 220% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: fz-gradient 6s ease infinite;
+}
+.fz-shimmer-text {
+  background: linear-gradient(
+    110deg,
+    #64748b 0%,
+    #64748b 42%,
+    #ffffff 50%,
+    #64748b 58%,
+    #64748b 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: fz-shimmer 4.5s linear infinite;
+}
+.fz-load {
+  animation: fz-rise 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.fz-marquee-track {
+  animation: fz-marquee 30s linear infinite;
+}
+.fz-dot {
+  animation: fz-blink 1.2s infinite;
+}
+.fz-reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.fz-reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Grid texture faded by a radial mask so it melts into the dark. */
+.fz-grid {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 75% 65% at 50% 0%,
+    #000 35%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 75% 65% at 50% 0%,
+    #000 35%,
+    transparent 100%
+  );
+}
+
+/* Cursor-following spotlight glow for feature cards. */
+.fz-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.fz-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(52, 211, 153, 0.16),
+    transparent 60%
+  );
+}
+.fz-spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Animated conic ring behind the hero chat mockup. */
+.fz-conic {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgba(37, 211, 102, 0.45) 18%,
+    transparent 40%,
+    rgba(45, 212, 191, 0.4) 62%,
+    transparent 85%
+  );
+  animation: fz-spin-slow 14s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fz-aurora-blob,
+  .animate-fz-float,
+  .fz-gradient-text,
+  .fz-shimmer-text,
+  .fz-load,
+  .fz-marquee-track,
+  .fz-dot,
+  .fz-conic {
+    animation: none !important;
+  }
+  .fz-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
