@@ -14,8 +14,8 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Dummy public vars so `next build` can inline them.
-# Real values come from docker-compose env at runtime.
+# Public vars are baked in at build time.
+# Real server-side secrets come from docker-compose env at runtime.
 ARG NEXT_PUBLIC_SUPABASE_URL=https://aeejbjfhxpflbuijisup.supabase.co
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_BmfpLA5599BcVxNSszf3rg_mldoJ_oD
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -33,7 +33,10 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+
+# Next.js standalone mirrors the absolute path structure from the build.
+# In Docker (WORKDIR /app), server.js is at .next/standalone/app/server.js.
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
