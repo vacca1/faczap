@@ -276,11 +276,14 @@ html[data-theme="rose"] {
  * ============================================================ */
 
 .fz-root {
-  --fz-bg: #050a0b;
+  --fz-bg: #070611;
   --fz-green: #25d366;
   --fz-emerald: #34d399;
   --fz-lime: #a3e635;
   --fz-teal: #2dd4bf;
+  /* FatorZap brand purple (from the logo) — paired with WhatsApp green */
+  --fz-purple: #7c3aed;
+  --fz-violet: #a855f7;
 }
 
 .font-display {

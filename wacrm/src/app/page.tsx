@@ -118,7 +118,7 @@ export default function LandingPage() {
         {/* React Bits Aurora — WebGL flowing gradient anchored to the top */}
         <div className="absolute inset-x-0 top-0 h-[75vh] opacity-70">
           <Aurora
-            colorStops={["#25d366", "#a3e635", "#2dd4bf"]}
+            colorStops={["#7c3aed", "#22c55e", "#a3e635"]}
             amplitude={1.1}
             blend={0.55}
             speed={0.7}
@@ -127,9 +127,13 @@ export default function LandingPage() {
         {/* vignette + grid texture layered over the aurora */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(37,211,102,0.08),transparent_60%)]" />
         <div className="fz-grid absolute inset-0" />
-        {/* soft secondary glows lower on the page */}
+        {/* soft secondary glows lower on the page — purple + lime duotone */}
         <div
-          className="fz-aurora-blob absolute top-[60%] -right-32 h-[440px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(163,230,53,0.14),transparent_70%)] blur-[110px]"
+          className="fz-aurora-blob absolute top-[58%] -left-40 h-[460px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.18),transparent_70%)] blur-[120px]"
+          style={{ animationDelay: "-8s" }}
+        />
+        <div
+          className="fz-aurora-blob absolute top-[72%] -right-32 h-[440px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(163,230,53,0.12),transparent_70%)] blur-[110px]"
           style={{ animationDelay: "-12s" }}
         />
       </div>
@@ -145,7 +149,8 @@ export default function LandingPage() {
                 className="h-8 w-8"
               />
               <span className="font-display text-lg font-bold tracking-tight">
-                Fator<span className="text-[var(--fz-emerald)]">Zap</span>
+                <span className="text-[var(--fz-violet)]">Fator</span>
+                <span className="text-[var(--fz-emerald)]">Zap</span>
               </span>
             </Link>
 
@@ -201,7 +206,7 @@ export default function LandingPage() {
               Seu WhatsApp virou
               <br />
               uma{" "}
-              <span className="fz-gradient-text bg-[linear-gradient(110deg,var(--fz-green),var(--fz-lime),var(--fz-teal),var(--fz-green))]">
+              <span className="fz-gradient-text bg-[linear-gradient(110deg,var(--fz-violet),var(--fz-green),var(--fz-lime),var(--fz-violet))]">
                 máquina de vendas
               </span>
             </h1>
@@ -488,7 +493,7 @@ export default function LandingPage() {
                 </div>
                 <h2 className="font-display mx-auto max-w-2xl text-3xl font-extrabold tracking-tight sm:text-5xl">
                   Pronto para vender mais pelo{" "}
-                  <span className="fz-gradient-text bg-[linear-gradient(110deg,var(--fz-green),var(--fz-lime),var(--fz-teal),var(--fz-green))]">
+                  <span className="fz-gradient-text bg-[linear-gradient(110deg,var(--fz-violet),var(--fz-green),var(--fz-lime),var(--fz-violet))]">
                     WhatsApp
                   </span>
                   ?
@@ -523,7 +528,8 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2.5">
               <img src="/factorzap-icon.svg" alt="FatorZap" className="h-7 w-7" />
               <span className="font-display text-base font-bold tracking-tight">
-                Fator<span className="text-[var(--fz-emerald)]">Zap</span>
+                <span className="text-[var(--fz-violet)]">Fator</span>
+                <span className="text-[var(--fz-emerald)]">Zap</span>
               </span>
             </Link>
             <div className="flex items-center gap-6 text-sm text-slate-400">
