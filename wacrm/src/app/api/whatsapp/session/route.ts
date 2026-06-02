@@ -120,7 +120,9 @@ export async function POST() {
     }
 
     if (!sessionId) {
-      const created = await createSession(`fz_${accountId}`)
+      // OpenWA session names allow only [a-zA-Z0-9-] (no underscore), max 50.
+      // accountId is a 36-char UUID → "fz-" + 36 = 39 chars, within limits.
+      const created = await createSession(`fz-${accountId}`)
       sessionId = created.id
       const row = {
         account_id: accountId,

@@ -75,7 +75,12 @@ export async function createSession(name: string): Promise<OpenWASession> {
     body: JSON.stringify({ name }),
   })
   if (!ok || !data?.id) {
-    throw new Error(`Falha ao criar sessão OpenWA (HTTP ${status}).`)
+    // Surface the OpenWA validation/error message when present.
+    const raw = (data as { message?: string | string[] } | null)?.message
+    const detail = Array.isArray(raw) ? raw.join('; ') : raw
+    throw new Error(
+      `Falha ao criar sessão OpenWA (HTTP ${status})${detail ? `: ${detail}` : ''}.`,
+    )
   }
   return data
 }
