@@ -3,8 +3,8 @@ FROM node:22-alpine AS base
 # --- Dependencies ---
 FROM base AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json .npmrc ./
+RUN npm install --legacy-peer-deps
 
 # --- Builder ---
 FROM base AS builder
@@ -16,8 +16,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Dummy public vars so `next build` can inline them.
 # Real values come from docker-compose env at runtime.
-ARG NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
+ARG NEXT_PUBLIC_SUPABASE_URL=https://aeejbjfhxpflbuijisup.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_BmfpLA5599BcVxNSszf3rg_mldoJ_oD
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 RUN npm run build
