@@ -9,6 +9,7 @@ node_modules/
 # Next.js
 wacrm/.next/
 wacrm/out/
+wacrm/package-lock.json
 
 # OpenWA data
 OpenWA/data/
