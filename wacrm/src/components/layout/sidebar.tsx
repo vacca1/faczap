@@ -84,20 +84,22 @@ interface NavItem {
    * Purely informational — doesn't affect routing or access.
    */
   beta?: boolean;
+  /** Identifier used by the onboarding tour to anchor tooltips. */
+  tourId?: string;
 }
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
-  { href: "/inbox", label: "Caixa de Entrada", icon: MessageSquare },
-  { href: "/contacts", label: "Contatos", icon: Users },
-  { href: "/pipelines", label: "Pipelines", icon: GitBranch },
-  { href: "/broadcasts", label: "Transmissões", icon: Radio },
-  { href: "/automations", label: "Automações", icon: Zap },
+  { href: "/inbox", label: "Caixa de Entrada", icon: MessageSquare, tourId: "inbox" },
+  { href: "/contacts", label: "Contatos", icon: Users, tourId: "contacts" },
+  { href: "/pipelines", label: "Pipelines", icon: GitBranch, tourId: "pipelines" },
+  { href: "/broadcasts", label: "Transmissões", icon: Radio, tourId: "broadcasts" },
+  { href: "/automations", label: "Automações", icon: Zap, tourId: "automations" },
   { href: "/flows", label: "Fluxos", icon: Workflow, beta: true },
 ];
 
-const bottomNavItems = [
-  { href: "/settings", label: "Configurações", icon: Settings },
+const bottomNavItems: NavItem[] = [
+  { href: "/settings", label: "Configurações", icon: Settings, tourId: "settings" },
 ];
 
 interface SidebarProps {
@@ -210,6 +212,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    {...(item.tourId ? { "data-tour": item.tourId } : {})}
                     className={cn(
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
@@ -252,6 +255,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    {...(item.tourId ? { "data-tour": item.tourId } : {})}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
                       isActive

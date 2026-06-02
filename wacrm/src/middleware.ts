@@ -2,12 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback', '/reset-password']
+const PUBLIC_ROUTES_EXACT = ['/']
+const PUBLIC_ROUTES_PREFIX = ['/login', '/signup', '/forgot-password', '/auth/callback', '/reset-password']
 const API_PUBLIC_ROUTES = ['/api/whatsapp/webhook', '/api/automations/cron', '/api/flows/cron']
 
 function isPublicRoute(pathname: string): boolean {
   return (
-    PUBLIC_ROUTES.some((r) => pathname.startsWith(r)) ||
+    PUBLIC_ROUTES_EXACT.includes(pathname) ||
+    PUBLIC_ROUTES_PREFIX.some((r) => pathname.startsWith(r)) ||
     API_PUBLIC_ROUTES.some((r) => pathname.startsWith(r))
   )
 }
@@ -37,6 +39,13 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
+
+  // Landing page: if authenticated, redirect to dashboard
+  if (pathname === '/' && user) {
+    const dashboardUrl = request.nextUrl.clone()
+    dashboardUrl.pathname = '/dashboard'
+    return NextResponse.redirect(dashboardUrl)
+  }
 
   // Allow public routes without auth
   if (isPublicRoute(pathname)) {
